@@ -1,141 +1,96 @@
+#ALGORITMO RSA
+#generamos 2 primos p y q, talque p sea diferente de q y cada uno de tiene que ser k/2 bits (mitad)
 import math
 import random
 
-def ES_COMPUESTO(a, n, t, u):
-    x = POW_MOD(a, u, n)
+aleatorio = random.SystemRandom()
 
-    if (x == 1 or x == n - 1):
-        return False
+def prueba(n, a):
+    exp = n - 1
+    while not exp & 1:
+        exp >>= 1
+    if pow(a, exp, n) == 1:
+        return True
+    while exp < n - 1:
+        if pow(a, exp, n) == n - 1:
+            return True
+        exp <<= 1
+    return False
 
-    for i in range(1,t,1):
-        x = POW_MOD(x, 2, n)
-        if (x == n - 1):
+def Miller_Rabin(n, k = 40):
+    for i in range(k):
+        a = aleatorio.randrange(2, n - 1)
+        if not prueba(n, a):
             return False
-
     return True
 
+def gen_primo(bits):
+    while True:
+        a = (aleatorio.randrange(1 << bits - 1, 1 << bits) >> 1) + 1
+        if Miller_Rabin(a):
+            return a
 
-def EUCLIDES(a, b):
+def euclides(a, b):
     if b == 0:
         return a
-    else:
-        return EUCLIDES(b, a % b)
-    
-def EUCLIDES_EXTEND(a, b):
-    if b == 0:
-        return (a, 1, 0)
-    else:
-        (d, dx, dy) = EUCLIDES_EXTEND(b, a % b)
-        (x, y) = (dy, dx - a // b * dy)
-        return (d, x, y)
+    return euclides(b, a % b)
 
-def EXP_MOD(a, x, n):
-    c = a % n
-    r = 1
-    while x > 0:
-        if x % 2 == 1:
-            r = (r * c) % n
-        c = (c * c) % n
-        x = x // 2
+print("Generar numero p primo aleatorio de k/2 bits")
+#eleccion = int(input("Elija: "))
+eleccion = 64
+#mitad = eleccion / 2
+#print("Numero p aleatorio de " + str(mitad) + " bits")
+print("Valor de p: ")
+print(gen_primo(eleccion))
+print()
+#=============================================================================
+print("Generar numero q primo aleatorio de k/2 bits")
+#eleccion2 = int(input("Elija: "))
+eleccion2 = 64
+#mitad2 = eleccion2 / 2
+#print("Numero q aleatorio de " + str(mitad2) + " bits"
+print("Valor de q: ")
+print(gen_primo(eleccion2))
+print()
+#=============================================================================
+#Calculamos n = p * q
+n = eleccion * eleccion2
+print("Generamos valor de n")
+print(n)
+print()
+#Calcular la función Euler de n
+def PHI(ene):
+    r = 0
+    for i in range(ene):
+        d = euclides(i, n)
+        if d == 1:
+            r = r + 1
+    return r
+print("Funcion Euler de n es: ")
+print(PHI(n))
+#=============================================================================
+#generamos un número entre [2 y n - 1]
+def generar_E(minimo, maximo):
+    r = aleatorio.randrange(minimo, maximo)
     return r
 
-def INVERSO(a, n):
-    (mcd, x, y) = EUCLIDES_EXTEND(a, n)
-    if mcd == 1:
-        return x % n
-    else:
-        return None
+print("Generamos el valor de e: ")
+e = generar_E(2, n - 1)
+print(e)
+print()
+#============================================================================
+#usamos el algoritmo extendido de Euclides 
+def extendido_euclides(a, b):
+    x1, x2 = 1, 0
+    y1, y2 = 0, 1
+    while b:
+        q, r = divmod(a, b)
+        x2, x1 = x1 - q * x2, x2
+        y2, y1 = y1 - q * y2, y2
+        a, b = b, r
+    return a, x1, y1
 
-def MILLER_RABIN(n, s):
-    t = 0
-    u = n - 1
-    while (u % 2 == 0):
-        u = u / 2
-        t = t + 1
-
-    j = 1
-    while (j < s):
-        a = RANDOMINTEGER(2, n - 1)
-        if (ES_COMPUESTO(a, n, t, u)):
-            return False
-            
-        j += 1
-
-    return True
-
-def POW_MOD(a, x, n):
-    c = a % n
-    r = 1
-    
-    while(x > 0):
-        if((x % 2) != 0):
-            r = (r * c) % n
-        
-        c = (c * c) % n
-        x = int(x / 2)
-    
-    return r
-
-def RANDOMBITS(b):
-    max = pow(2, b) - 1
-    n = RANDOMINTEGER(0, max)
-    m = pow(2, b - 1) + 1
-    n = n | m
-    return n
-
-configure_s = 40
-
-def RANDOMGEN_PRIMOS(b):
-    s = configure_s
-    n = RANDOMBITS(b)
-    while (not MILLER_RABIN(n, s)):
-        n += 2
-  
-    return n
-
-def RANDOMINTEGER(min, max):
-    return random.randint(min, max)
-
-def RSA_KEY_GENERATOR(bits):
-    arg = bits // 2
-    p = RANDOMGEN_PRIMOS(arg)
-    q = RANDOMGEN_PRIMOS(arg)
-    while p == q:
-        q = RANDOMGEN_PRIMOS(arg)
-
-    n = p * q
-    phiN = (p - 1) * (q - 1)
-    
-    e = RANDOMBITS(bits)
-    while EUCLIDES(e, phiN) != 1:
-        e = RANDOMBITS(bits)
-    
-    d = INVERSO(e, phiN)
-    return (e, n), (d, n)
-
-def CIPHER(m, k: tuple):
-    arg1, arg2 = k
-    return EXP_MOD(m, arg1, arg2)
-
-def main():
-    k = 64
-    P, S = RSA_KEY_GENERATOR(k)
-    e, n = P
-    d, _ = S
-
-    tab = 62
-    print('e = {:}\nd = {:}\nn = {:}\n'.format(e, d, n))
-    print('-' * tab)
-    print('{:^20}{:^20}{:^20}'.format('m', 'c = P(m)', 'm\' = S(c)'))
-    print('-' * tab)
-
-    stack = []
-    for i in range(10):
-        m = RANDOMBITS(32)
-        while m in stack:
-            m = RANDOMBITS(32)
-        stack.append(m)
-        c = CIPHER(m, P)
-        print('{:^20}{:^20}{:^20}'.format(m, c, CIPHER(c, S)))
-
-main()
+print("Hallamos d con algoritmo extendido de euclides: ")
+d = extendido_euclides(e, n)
+print(d)
+print()
